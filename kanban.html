@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Kanban — Intelligent Project Board</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7F77DD">
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --purple: #7F77DD; --purple-light: #EEEDFE; --purple-dark: #3C3489;
+    --teal: #1D9E75; --teal-light: #E1F5EE; --teal-dark: #085041;
+    --amber: #BA7517; --amber-light: #FAEEDA; --amber-dark: #633806;
+    --blue: #378ADD; --blue-light: #E6F1FB; --blue-dark: #0C447C;
+    --green: #639922; --green-light: #EAF3DE; --green-dark: #27500A;
+    --coral: #D85A30; --coral-light: #FAECE7; --coral-dark: #712B13;
+    --red: #E24B4A; --red-light: #FCEBEB;
+    --gray-50: #F1EFE8; --gray-100: #D3D1C7; --gray-400: #888780;
+    --gray-600: #5F5E5A; --gray-800: #444441; --gray-900: #2C2C2A;
+    --text: #2C2C2A; --text-muted: #5F5E5A; --text-hint: #888780;
+    --bg: #F8F7F3; --surface: #FFFFFF; --border: rgba(44,44,42,0.12);
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+    --radius: 10px; --radius-sm: 6px;
+    --col-width: 280px;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+    font-size: 14px; line-height: 1.5;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 20px; height: 56px; display: flex; align-items: center;
+    gap: 12px; position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 8px; font-weight: 600;
+    font-size: 15px; color: var(--text);
+  }
+  .logo-icon {
+    width: 28px; height: 28px; background: var(--purple); border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-icon svg { width: 16px; height: 16px; }
+  header .spacer { flex: 1; }
+  .header-btn {
+    display: flex; align-items: center; gap: 6px; padding: 6px 14px;
+    border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 13px;
+    cursor: pointer; transition: all 0.15s; font-weight: 500;
+  }
+  .header-btn:hover { background: var(--gray-50); }
+  .header-btn.primary {
+    background: var(--purple); color: #fff; border-color: var(--purple);
+  }
+  .header-btn.primary:hover { background: var(--purple-dark); }
+  .ai-badge {
+    display: flex; align-items: center; gap: 5px; padding: 4px 10px;
+    background: var(--purple-light); color: var(--purple-dark);
+    border-radius: 20px; font-size: 12px; font-weight: 600;
+  }
+  .ai-dot { width: 6px; height: 6px; background: var(--purple); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ── Layout ── */
+  .app { display: flex; height: calc(100vh - 56px); overflow: hidden; }
+  .sidebar {
+    width: 260px; min-width: 260px; background: var(--surface);
+    border-right: 1px solid var(--border); overflow-y: auto;
+    display: flex; flex-direction: column;
+  }
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .board-area {
+    flex: 1; overflow-x: auto; overflow-y: hidden; padding: 20px;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar-section { padding: 14px 14px 6px; }
+  .sidebar-section h3 {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-hint); margin-bottom: 8px;
+  }
+  .stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .stat-val { font-weight: 600; color: var(--text); }
+  .insight-card {
+    margin: 0 14px 10px; padding: 10px 12px;
+    background: var(--purple-light); border-radius: var(--radius-sm);
+    border-left: 3px solid var(--purple);
+  }
+  .insight-card p { font-size: 12px; color: var(--purple-dark); line-height: 1.5; }
+  .health-bar { height: 6px; background: var(--border); border-radius: 3px; margin: 6px 0; }
+  .health-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+  .mini-chart { display: flex; align-items: flex-end; gap: 3px; height: 40px; padding: 0 14px 10px; }
+  .mini-bar { flex: 1; border-radius: 3px 3px 0 0; min-width: 0; transition: height 0.4s; }
+
+  /* ── AI Chat Panel ── */
+  .chat-panel {
+    border-top: 1px solid var(--border); padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .chat-label { font-size: 11px; font-weight: 600; color: var(--purple); text-transform: uppercase; letter-spacing: 0.06em; }
+  .chat-messages { max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .chat-msg {
+    padding: 7px 10px; border-radius: var(--radius-sm); font-size: 12px; line-height: 1.5;
+  }
+  .chat-msg.user { background: var(--purple); color: #fff; align-self: flex-end; max-width: 80%; }
+  .chat-msg.ai { background: var(--gray-50); color: var(--text); border: 1px solid var(--border); }
+  .chat-input-row { display: flex; gap: 6px; }
+  .chat-input-row input {
+    flex: 1; padding: 7px 10px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); font-size: 12px; background: var(--surface);
+    color: var(--text); outline: none;
+  }
+  .chat-input-row input:focus { border-color: var(--purple); }
+  .chat-send {
+    padding: 7px 12px; background: var(--purple); color: #fff;
+    border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px;
+  }
+
+  /* ── Kanban Columns ── */
+  .column {
+    width: var(--col-width); min-width: var(--col-width); max-width: var(--col-width);
+    background: var(--gray-50); border-radius: var(--radius); border: 1px solid var(--border);
+    display: flex; flex-direction: column; max-height: calc(100vh - 120px);
+  }
+  .column-header {
+    padding: 12px 14px; display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .col-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .col-title { font-weight: 600; font-size: 13px; flex: 1; }
+  .col-count {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1px 7px; font-size: 11px; font-weight: 600; color: var(--text-muted);
+  }
+  .col-add {
+    width: 24px; height: 24px; border-radius: 5px; border: 1px solid var(--border);
+    background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: var(--text-muted); transition: all 0.15s;
+  }
+  .col-add:hover { background: var(--surface); color: var(--text); }
+  .column-body {
+    flex: 1; overflow-y: auto; padding: 10px 10px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .column-body.drag-over { background: rgba(127,119,221,0.08); }
+
+  /* ── Task Card ── */
+  .task-card {
+    background: var(--surface); border-radius: var(--radius-sm);
+    border: 1px solid var(--border); padding: 10px 12px;
+    cursor: grab; transition: box-shadow 0.15s, transform 0.15s;
+    position: relative;
+  }
+  .task-card:hover { box-shadow: var(--shadow); }
+  .task-card.dragging { opacity: 0.5; transform: rotate(1.5deg); cursor: grabbing; }
+  .task-card.ai-analyzing::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--purple) 0%, var(--teal) 50%, var(--purple) 100%);
+    background-size: 200%; animation: shimmer 1.5s infinite; border-radius: 2px 2px 0 0;
+  }
+  @keyframes shimmer { 0%{background-position:0%} 100%{background-position:200%} }
+  .card-header { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+  .card-title { font-size: 13px; font-weight: 600; flex: 1; line-height: 1.4; }
+  .priority-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px;
+  }
+  .priority-low { background: var(--green); }
+  .priority-medium { background: var(--amber); }
+  .priority-high { background: var(--coral); }
+  .priority-critical { background: var(--red); }
+  .card-desc {
+    font-size: 12px; color: var(--text-muted); margin-bottom: 8px;
+    line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .card-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 500;
+  }
+  .tag-category { background: var(--purple-light); color: var(--purple-dark); }
+  .tag-label { background: var(--gray-50); color: var(--text-muted); border: 1px solid var(--border); }
+  .avatar {
+    width: 20px; height: 20px; border-radius: 50%; background: var(--blue);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .card-footer { margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+  .estimate { font-size: 11px; color: var(--text-hint); }
+  .card-actions { margin-left: auto; display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+  .task-card:hover .card-actions { opacity: 1; }
+  .card-btn {
+    width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border);
+    background: var(--surface); cursor: pointer; display: flex; align-items: center;
+    justify-content: center; font-size: 11px; color: var(--text-muted);
+    transition: all 0.12s;
+  }
+  .card-btn:hover { background: var(--gray-50); color: var(--text); }
+  .card-btn.danger:hover { background: var(--red-light); color: var(--red); border-color: var(--red); }
+  .sentiment-badge {
+    font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 600;
+  }
+  .sentiment-positive { background: var(--teal-light); color: var(--teal-dark); }
+  .sentiment-urgent { background: var(--red-light); color: var(--red); }
+  .sentiment-blocked { background: var(--amber-light); color: var(--amber-dark); }
+  .sentiment-neutral { background: var(--gray-50); color: var(--text-muted); }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    z-index: 200; display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface); border-radius: var(--radius);
+    box-shadow: var(--shadow-lg); width: 520px; max-width: 95vw;
+    max-height: 85vh; overflow-y: auto;
+    transform: translateY(12px); transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .modal-title { font-weight: 600; font-size: 15px; flex: 1; }
+  .modal-close {
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; cursor: pointer; font-size: 16px; display: flex;
+    align-items: center; justify-content: center; color: var(--text-muted);
+  }
+  .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+  .field input, .field textarea, .field select {
+    padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    font-size: 13px; background: var(--surface); color: var(--text);
+    font-family: inherit; outline: none; transition: border-color 0.15s; width: 100%;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--purple); }
+  .field textarea { resize: vertical; min-height: 80px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ai-result {
+    background: var(--purple-light); border-radius: var(--radius-sm);
+    border: 1px solid rgba(127,119,221,0.3); padding: 12px;
+  }
+  .ai-result-title { font-size: 11px; font-weight: 600; color: var(--purple); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .ai-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ai-chip {
+    padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;
+    background: white; border: 1px solid rgba(127,119,221,0.3); color: var(--purple-dark);
+  }
+  .modal-footer {
+    padding: 14px 20px; border-top: 1px solid var(--border);
+    display: flex; gap: 10px; justify-content: flex-end;
+  }
+  .btn {
+    padding: 8px 18px; border-radius: var(--radius-sm); font-size: 13px;
+    font-weight: 500; cursor: pointer; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); transition: all 0.15s;
+  }
+  .btn:hover { background: var(--gray-50); }
+  .btn.primary { background: var(--purple); color: #fff; border-color: var(--purple); }
+  .btn.primary:hover { background: var(--purple-dark); }
+  .btn.ai-btn { background: var(--purple-light); color: var(--purple-dark); border-color: rgba(127,119,221,0.3); }
+  .btn.ai-btn:hover { background: rgba(127,119,221,0.2); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Toast ── */
+  .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--gray-900); color: #fff; padding: 10px 16px;
+    border-radius: var(--radius-sm); font-size: 13px; max-width: 280px;
+    animation: slideIn 0.25s ease; box-shadow: var(--shadow-lg);
+  }
+  .toast.success { background: var(--teal-dark); }
+  .toast.error { background: #791F1F; }
+  @keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:none;opacity:1} }
+
+  /* ── Spinner ── */
+  .spinner {
+    display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  .spinner.dark { border-color: rgba(127,119,221,0.2); border-top-color: var(--purple); }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--gray-100); border-radius: 3px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    :root { --col-width: 240px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="5" height="9" rx="1.5" fill="white" opacity="0.9"/>
+        <rect x="1" y="12" width="5" height="3" rx="1.5" fill="white" opacity="0.5"/>
+        <rect x="8" y="1" width="7" height="4" rx="1.5" fill="white" opacity="0.9"/>
+        <rect x="8" y="7" width="7" height="8" rx="1.5" fill="white" opacity="0.5"/>
+      </svg>
+    </div>
+    AI Kanban
+  </div>
+  <div class="ai-badge"><div class="ai-dot"></div> AI Active</div>
+  <div class="spacer"></div>
+  <button class="header-btn" onclick="refreshInsights()">⚡ Insights</button>
+  <button class="header-btn primary" onclick="openModal()">+ New Task</button>
+</header>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <h3>Board Health</h3>
+      <div id="health-score" style="font-size:28px;font-weight:700;color:var(--purple);margin:4px 0">—</div>
+      <div class="health-bar"><div class="health-fill" id="health-fill" style="width:0%;background:var(--purple)"></div></div>
+      <div id="health-label" style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Loading…</div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Stats</h3>
+      <div class="stat-row"><span>Total tasks</span><span class="stat-val" id="stat-total">—</span></div>
+      <div class="stat-row"><span>In progress</span><span class="stat-val" id="stat-wip">—</span></div>
+      <div class="stat-row"><span>Est. hours</span><span class="stat-val" id="stat-hours">—</span></div>
+      <div class="stat-row"><span>ETA (days)</span><span class="stat-val" id="stat-eta">—</span></div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Priority Breakdown</h3>
+    </div>
+    <div class="mini-chart" id="priority-chart"></div>
+
+    <div class="sidebar-section">
+      <h3>AI Recommendation</h3>
+    </div>
+    <div id="insight-cards"></div>
+
+    <div style="flex:1"></div>
+
+    <!-- AI Chat -->
+    <div class="chat-panel">
+      <div class="chat-label">🤖 Ask AI</div>
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-msg ai">Hi! Ask me anything about your board — priorities, blockers, or what to focus on.</div>
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="What should I focus on?" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="chat-send" onclick="sendChat()">↑</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Board -->
+  <main class="main">
+    <div class="board-area" id="board"></div>
+  </main>
+</div>
+
+<!-- New Task Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New Task</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Task Title *</label>
+        <input id="f-title" type="text" placeholder="e.g. Implement OAuth 2.0 login">
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea id="f-desc" placeholder="Describe what needs to be done…"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Column</label>
+          <select id="f-column">
+            <option value="backlog">Backlog</option>
+            <option value="todo">To Do</option>
+            <option value="in_progress">In Progress</option>
+            <option value="review">Review</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Assignee initials</label>
+          <input id="f-assignee" type="text" placeholder="e.g. AO" maxlength="3">
+        </div>
+      </div>
+      <button class="btn ai-btn" id="analyze-btn" onclick="analyzeTask()">🤖 Analyze with AI</button>
+      <div id="ai-result" style="display:none" class="ai-result">
+        <div class="ai-result-title">AI Analysis</div>
+        <div class="ai-chips" id="ai-chips"></div>
+        <div id="ai-reasoning" style="font-size:12px;color:var(--purple-dark);margin-top:8px;"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" id="create-btn" onclick="createTask()">Create Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+const API = 'http://127.0.0.1:5000/api';
+let boardData = { columns: [], tasks: [] };
+let draggedTaskId = null;
+let aiAnalysis = null;
+
+const AVATAR_COLORS = ['#378ADD','#1D9E75','#7F77DD','#D85A30','#BA7517','#D4537E'];
+const avatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+async function boot() {
+  try {
+    const r = await fetch(`${API}/board`);
+    boardData = await r.json();
+    renderBoard();
+    refreshInsights();
+  } catch(e) {
+    toast('Cannot reach backend — is kanban_backend.py running on :5050?', 'error');
+    // Load demo data anyway
+    boardData = getDemoData();
+    renderBoard();
+  }
+}
+
+function getDemoData() {
+  return {
+    columns: [
+      {id:'backlog',title:'Backlog',color:'#7F77DD'},
+      {id:'todo',title:'To Do',color:'#1D9E75'},
+      {id:'in_progress',title:'In Progress',color:'#BA7517'},
+      {id:'review',title:'Review',color:'#378ADD'},
+      {id:'done',title:'Done',color:'#639922'},
+    ],
+    tasks: [
+      {id:'t1',column:'todo',title:'Design system tokens',description:'Create unified color and spacing tokens',priority:'high',category:'Design',assignee:'AO',estimate_hours:4,sentiment:'neutral',tags:['design']},
+      {id:'t2',column:'in_progress',title:'API rate limiting',description:'Implement rate limiting middleware',priority:'critical',category:'Backend',assignee:'MK',estimate_hours:6,sentiment:'urgent',tags:['security']},
+      {id:'t3',column:'review',title:'User onboarding flow',description:'Build onboarding wizard for new users',priority:'medium',category:'Product',assignee:'SL',estimate_hours:8,sentiment:'positive',tags:['ux']},
+      {id:'t4',column:'backlog',title:'Mobile push notifications',description:'Add push notification support',priority:'low',category:'Mobile',assignee:'',estimate_hours:12,sentiment:'neutral',tags:['mobile']},
+      {id:'t5',column:'done',title:'Database indexing',description:'Add indexes to frequently queried columns',priority:'high',category:'Backend',assignee:'AO',estimate_hours:3,sentiment:'positive',tags:['performance']},
+    ]
+  };
+}
+
+// ── Render Board ──────────────────────────────────────────────────────────────
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  boardData.columns.forEach(col => {
+    const tasks = boardData.tasks.filter(t => t.column === col.id);
+    const el = document.createElement('div');
+    el.className = 'column';
+    el.dataset.colId = col.id;
+    el.innerHTML = `
+      <div class="column-header">
+        <div class="col-dot" style="background:${col.color}"></div>
+        <div class="col-title">${col.title}</div>
+        <div class="col-count">${tasks.length}</div>
+        <button class="col-add" title="Add task" onclick="openModal('${col.id}')">+</button>
+      </div>
+      <div class="column-body" id="col-${col.id}"
+        ondragover="onDragOver(event,'${col.id}')"
+        ondragleave="onDragLeave(event)"
+        ondrop="onDrop(event,'${col.id}')">
+        ${tasks.map(renderCard).join('')}
+      </div>`;
+    board.appendChild(el);
+  });
+  updateStatBar();
+}
+
+function renderCard(task) {
+  const sentClass = `sentiment-${task.sentiment || 'neutral'}`;
+  const sentLabel = task.sentiment && task.sentiment !== 'neutral' ? `<span class="sentiment-badge ${sentClass}">${task.sentiment}</span>` : '';
+  const avColor = avatarColor(task.assignee);
+  const avatar = task.assignee ? `<div class="avatar" style="background:${avColor}">${task.assignee}</div>` : '';
+  const tags = (task.tags || []).slice(0,2).map(t => `<span class="tag tag-label">${t}</span>`).join('');
+  return `<div class="task-card" id="card-${task.id}"
+    draggable="true"
+    ondragstart="onDragStart(event,'${task.id}')"
+    ondragend="onDragEnd(event)">
+    <div class="card-header">
+      <div class="priority-dot priority-${task.priority}"></div>
+      <div class="card-title">${escHtml(task.title)}</div>
+    </div>
+    ${task.description ? `<div class="card-desc">${escHtml(task.description)}</div>` : ''}
+    <div class="card-meta">
+      <span class="tag tag-category">${task.category || 'General'}</span>
+      ${sentLabel}
+      ${tags}
+    </div>
+    <div class="card-footer">
+      ${avatar}
+      ${task.estimate_hours ? `<span class="estimate">⏱ ${task.estimate_hours}h</span>` : ''}
+      <div class="card-actions">
+        <button class="card-btn" title="Edit" onclick="editTask('${task.id}')">✎</button>
+        <button class="card-btn danger" title="Delete" onclick="deleteTask('${task.id}')">✕</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Drag & Drop ───────────────────────────────────────────────────────────────
+function onDragStart(e, taskId) {
+  draggedTaskId = taskId;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.column-body').forEach(c => c.classList.remove('drag-over'));
+}
+function onDragOver(e, colId) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.getElementById(`col-${colId}`)?.classList.add('drag-over');
+}
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+async function onDrop(e, colId) {
+  e.preventDefault();
+  document.querySelectorAll('.column-body').forEach(c => c.classList.remove('drag-over'));
+  if (!draggedTaskId) return;
+  const task = boardData.tasks.find(t => t.id === draggedTaskId);
+  if (!task || task.column === colId) return;
+  task.column = colId;
+  renderBoard();
+  try {
+    await fetch(`${API}/tasks/${draggedTaskId}`, {
+      method: 'PATCH', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ column: colId })
+    });
+  } catch(e) {}
+  draggedTaskId = null;
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function openModal(colId) {
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-assignee').value = '';
+  document.getElementById('ai-result').style.display = 'none';
+  aiAnalysis = null;
+  if (colId) document.getElementById('f-column').value = colId;
+  setTimeout(() => document.getElementById('f-title').focus(), 100);
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+async function analyzeTask() {
+  const title = document.getElementById('f-title').value.trim();
+  const desc = document.getElementById('f-desc').value.trim();
+  if (!title) { toast('Enter a task title first', 'error'); return; }
+
+  const btn = document.getElementById('analyze-btn');
+  btn.innerHTML = '<span class="spinner"></span> Analyzing…';
+  btn.disabled = true;
+
+  try {
+    const r = await fetch(`${API}/ai/analyze`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ title, description: desc })
+    });
+    aiAnalysis = await r.json();
+    showAIResult(aiAnalysis);
+    toast('AI analysis complete ✓', 'success');
+  } catch(e) {
+    toast('AI analysis failed — backend running?', 'error');
+  }
+  btn.innerHTML = '🤖 Re-analyze';
+  btn.disabled = false;
+}
+
+function showAIResult(data) {
+  document.getElementById('ai-result').style.display = 'block';
+  const priorityColors = {low:'var(--teal)',medium:'var(--amber)',high:'var(--coral)',critical:'var(--red)'};
+  const chips = [
+    { label: `📁 ${data.category}` },
+    { label: `⚡ ${data.priority} priority`, color: priorityColors[data.priority] },
+    { label: `⏱ ~${data.estimate_hours}h` },
+    { label: `🎭 ${data.sentiment}` },
+    { label: `✅ ${Math.round((data.confidence||0)*100)}% confidence` },
+    ...(data.suggested_assignee_role ? [{ label: `👤 ${data.suggested_assignee_role}` }] : []),
+  ];
+  document.getElementById('ai-chips').innerHTML = chips.map(c =>
+    `<span class="ai-chip"${c.color ? ` style="color:${c.color}"` : ''}>${c.label}</span>`
+  ).join('');
+  const reasoning = data.reasoning || '';
+  const risk = data.risks ? `<br><strong>Risk:</strong> ${data.risks}` : '';
+  document.getElementById('ai-reasoning').innerHTML = reasoning + risk;
+  // Pre-fill tags
+  if (data.tags) document.getElementById('f-desc').dataset.tags = JSON.stringify(data.tags);
+}
+
+async function createTask() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { toast('Title is required', 'error'); return; }
+
+  const btn = document.getElementById('create-btn');
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+
+  const payload = {
+    title,
+    description: document.getElementById('f-desc').value.trim(),
+    column: document.getElementById('f-column').value,
+    assignee: document.getElementById('f-assignee').value.trim().toUpperCase().slice(0,3),
+    priority: aiAnalysis?.priority || 'medium',
+    category: aiAnalysis?.category || 'General',
+    estimate_hours: aiAnalysis?.estimate_hours || 0,
+    sentiment: aiAnalysis?.sentiment || 'neutral',
+    tags: aiAnalysis?.tags || [],
+  };
+
+  try {
+    const r = await fetch(`${API}/tasks`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const newTask = await r.json();
+    boardData.tasks.push(newTask);
+  } catch(e) {
+    // Offline mode
+    payload.id = `local_${Date.now()}`;
+    boardData.tasks.push(payload);
+  }
+
+  renderBoard();
+  closeModal();
+  toast('Task created ✓', 'success');
+  btn.innerHTML = 'Create Task';
+  btn.disabled = false;
+}
+
+// ── Edit & Delete ─────────────────────────────────────────────────────────────
+function editTask(taskId) {
+  const task = boardData.tasks.find(t => t.id === taskId);
+  if (!task) return;
+  openModal(task.column);
+  document.getElementById('f-title').value = task.title;
+  document.getElementById('f-desc').value = task.description || '';
+  document.getElementById('f-column').value = task.column;
+  document.getElementById('f-assignee').value = task.assignee || '';
+  document.getElementById('create-btn').textContent = 'Update Task';
+  document.getElementById('create-btn').onclick = async () => {
+    task.title = document.getElementById('f-title').value.trim();
+    task.description = document.getElementById('f-desc').value.trim();
+    task.column = document.getElementById('f-column').value;
+    task.assignee = document.getElementById('f-assignee').value.trim().toUpperCase();
+    try {
+      await fetch(`${API}/tasks/${taskId}`, {
+        method: 'PATCH', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(task)
+      });
+    } catch(e) {}
+    renderBoard();
+    closeModal();
+    toast('Task updated ✓', 'success');
+    document.getElementById('create-btn').textContent = 'Create Task';
+    document.getElementById('create-btn').onclick = createTask;
+  };
+}
+
+async function deleteTask(taskId) {
+  if (!confirm('Delete this task?')) return;
+  boardData.tasks = boardData.tasks.filter(t => t.id !== taskId);
+  renderBoard();
+  try {
+    await fetch(`${API}/tasks/${taskId}`, { method: 'DELETE' });
+  } catch(e) {}
+  toast('Task deleted', 'success');
+}
+
+// ── AI Insights ───────────────────────────────────────────────────────────────
+async function refreshInsights() {
+  try {
+    const r = await fetch(`${API}/ai/insights`);
+    const data = await r.json();
+    renderInsights(data);
+  } catch(e) {
+    renderDemoInsights();
+  }
+}
+
+function renderInsights(data) {
+  // Health score
+  const score = data.health_score || 0;
+  document.getElementById('health-score').textContent = score;
+  document.getElementById('health-label').textContent = data.health_label || '';
+  const fill = document.getElementById('health-fill');
+  fill.style.width = score + '%';
+  const colors = {Critical:'var(--red)',':At Risk':'var(--coral)','Fair':'var(--amber)','Good':'var(--teal)','Excellent':'var(--green)'};
+  fill.style.background = colors[data.health_label] || 'var(--purple)';
+
+  // Stats
+  const s = data.stats || {};
+  document.getElementById('stat-total').textContent = s.total_tasks || '—';
+  document.getElementById('stat-wip').textContent = (s.col_counts || {}).in_progress || 0;
+  document.getElementById('stat-hours').textContent = s.total_hours || '—';
+  document.getElementById('stat-eta').textContent = data.predicted_completion_days || '—';
+
+  // Priority chart
+  const pc = s.priority_counts || {};
+  const maxV = Math.max(1, ...Object.values(pc));
+  const chartColors = {low:'var(--green)',medium:'var(--amber)',high:'var(--coral)',critical:'var(--red)'};
+  document.getElementById('priority-chart').innerHTML = Object.entries(pc).map(([k,v]) =>
+    `<div title="${k}: ${v}" style="flex:1;height:${Math.round((v/maxV)*36)+4}px;background:${chartColors[k]||'var(--gray-100)'};border-radius:3px 3px 0 0"></div>`
+  ).join('');
+
+  // Insight cards
+  const cards = [
+    data.top_recommendation,
+    data.bottleneck,
+    data.wip_warning ? `⚠️ WIP limit exceeded — consider limiting in-progress tasks` : null,
+    ...(data.recommendations || []).slice(0,2)
+  ].filter(Boolean).slice(0,3);
+
+  document.getElementById('insight-cards').innerHTML = cards.map(rec =>
+    `<div class="insight-card"><p>${escHtml(rec)}</p></div>`
+  ).join('');
+}
+
+function renderDemoInsights() {
+  document.getElementById('health-score').textContent = '72';
+  document.getElementById('health-label').textContent = 'Good';
+  document.getElementById('health-fill').style.width = '72%';
+  document.getElementById('health-fill').style.background = 'var(--teal)';
+  document.getElementById('stat-total').textContent = boardData.tasks.length;
+  document.getElementById('stat-wip').textContent = boardData.tasks.filter(t=>t.column==='in_progress').length;
+  document.getElementById('stat-hours').textContent = boardData.tasks.reduce((a,t)=>a+(t.estimate_hours||0),0);
+  document.getElementById('stat-eta').textContent = '5';
+  document.getElementById('insight-cards').innerHTML = `<div class="insight-card"><p>Focus on clearing the review column to unblock downstream work.</p></div><div class="insight-card"><p>Consider assigning owners to unassigned backlog items.</p></div>`;
+}
+
+function updateStatBar() {
+  document.getElementById('stat-total').textContent = boardData.tasks.length;
+  document.getElementById('stat-wip').textContent = boardData.tasks.filter(t=>t.column==='in_progress').length;
+  document.getElementById('stat-hours').textContent = boardData.tasks.reduce((a,t)=>a+(t.estimate_hours||0),0);
+}
+
+// ── AI Chat ───────────────────────────────────────────────────────────────────
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  const msgs = document.getElementById('chat-messages');
+  msgs.innerHTML += `<div class="chat-msg user">${escHtml(msg)}</div>`;
+  msgs.innerHTML += `<div class="chat-msg ai" id="chat-thinking"><span class="spinner dark"></span></div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+
+  try {
+    const r = await fetch(`${API}/ai/chat`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ message: msg })
+    });
+    const data = await r.json();
+    document.getElementById('chat-thinking').innerHTML = escHtml(data.reply || data.error || 'No response');
+  } catch(e) {
+    document.getElementById('chat-thinking').textContent = 'Backend offline — start kanban_backend.py to enable AI chat.';
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function toast(msg, type='') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// Boot
+boot();
+</script>
+</body>
+</html>

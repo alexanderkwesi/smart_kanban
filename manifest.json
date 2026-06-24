@@ -1,0 +1,21 @@
+{
+  "name": "AI Kanban",
+  "short_name": "AI Kanban",
+  "description": "AI-powered Kanban board with task categorization and productivity insights",
+  "start_url": "/kanban.html",
+  "display": "standalone",
+  "background_color": "#F8F7F3",
+  "theme_color": "#7F77DD",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='24' fill='%237F77DD'/><rect x='20' y='20' width='60' height='100' rx='10' fill='white' opacity='0.9'/><rect x='20' y='136' width='60' height='36' rx='10' fill='white' opacity='0.5'/><rect x='96' y='20' width='76' height='50' rx='10' fill='white' opacity='0.9'/><rect x='96' y='86' width='76' height='90' rx='10' fill='white' opacity='0.5'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='64' fill='%237F77DD'/><rect x='48' y='48' width='160' height='270' rx='24' fill='white' opacity='0.9'/><rect x='48' y='352' width='160' height='112' rx='24' fill='white' opacity='0.5'/><rect x='240' y='48' width='224' height='140' rx='24' fill='white' opacity='0.9'/><rect x='240' y='224' width='224' height='240' rx='24' fill='white' opacity='0.5'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

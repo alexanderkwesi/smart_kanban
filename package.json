@@ -1,0 +1,38 @@
+{
+  "name": "ai-kanban",
+  "version": "1.0.0",
+  "description": "AI-powered Kanban board with task categorization, predictive analytics, and productivity insights",
+  "main": "kanban.html",
+  "scripts": {
+    "start": "http-server . -p 7000 --cors",
+    "dev": "http-server . -p 7000 --cors -c-1",
+    "dev:backend": "python kanban_backend.py",
+    "dev:all": " concurrently \"npm run dev\" \"npm run dev:backend\""
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
+    "concurrently": "^7.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "http-server": "13.1.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "nodemon": "^2.0.22"
+  },
+  "keywords": [
+    "kanban",
+    "ai",
+    "project-management",
+    "anthropic",
+    "react"
+  ],
+  "author": "Revise Tech Ltd",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
