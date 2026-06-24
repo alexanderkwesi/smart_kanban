@@ -781,8 +781,13 @@ async function sendChat() {
 
   try {
     const r = await fetch(`${API}/ai/chat`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
       body: JSON.stringify({ message: msg })
+
     });
     const data = await r.json();
     document.getElementById('chat-thinking').innerHTML = escHtml(data.reply || data.error || 'No response');
