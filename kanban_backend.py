@@ -21,7 +21,7 @@ except ImportError:
 app = Flask(__name__)
 CORS(app, supports_credentials=True,origins=["*", "http://127.0.0.1:7000"])
 
-api_key = "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"
+api_key = "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"
 if not api_key:
     raise RuntimeError("ANTHROPIC_API_KEY environment variable is not set.")
 
