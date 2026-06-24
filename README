@@ -1,0 +1,5 @@
+pip install flask flask-cors anthropic
+npm install
+set ANTHROPIC_API_KEY=sk-ant-...
+npm run dev:all
+# Open http://localhost:5000/kanban.html
