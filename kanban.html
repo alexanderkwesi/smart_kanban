@@ -773,16 +773,16 @@ async function sendChat() {
   const msg = input.value.trim();
   if (!msg) return;
   input.value = '';
-
+ 
   const msgs = document.getElementById('chat-messages');
   msgs.innerHTML += `<div class="chat-msg user">${escHtml(msg)}</div>`;
   msgs.innerHTML += `<div class="chat-msg ai" id="chat-thinking"><span class="spinner dark"></span></div>`;
   msgs.scrollTop = msgs.scrollHeight;
-
+ 
   try {
     const r = await fetch(`${API}/ai/chat`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      cre
+      credentials: 'include',
       body: JSON.stringify({ message: msg })
     });
     if (!r.ok) {
