@@ -1,1 +1,3 @@
-pip install flask flask-cors anthropic
+flask 
+flask-cors 
+anthropic
