@@ -19,7 +19,7 @@ except ImportError:
     pass
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["*", "http://127.0.0.1:7000"])
 
 api_key = "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"
 if not api_key:
