@@ -426,7 +426,7 @@
 <div class="toast-container" id="toasts"></div>
 
 <script>
-const API = window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/api' : 'https://smart-kanban-ashen.vercel.app/api';
+const API = window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:5000/api' : 'https://smart-kanban-ashen.vercel.app/api';
 let boardData = { columns: [], tasks: [] };
 let draggedTaskId = null;
 let aiAnalysis = null;
