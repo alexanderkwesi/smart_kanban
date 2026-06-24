@@ -426,7 +426,7 @@
 <div class="toast-container" id="toasts"></div>
 
 <script>
-const API = 'http://127.0.0.1:5000/api';
+const API = window.location.hostname === 'localhost' ? 'http://localhost:5050/api' : '/api';
 let boardData = { columns: [], tasks: [] };
 let draggedTaskId = null;
 let aiAnalysis = null;
