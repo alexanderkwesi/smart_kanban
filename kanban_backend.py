@@ -261,6 +261,7 @@ Respond ONLY with a JSON object (no markdown):
         return jsonify({"error": str(e)}), 500
 
 
+
 @app.route("/api/ai/chat", methods=["POST"])
 def ai_chat():
     """General AI chat about the board."""
@@ -290,6 +291,14 @@ Give a concise, helpful response (2-4 sentences max). Focus on actionable advice
         return jsonify({"reply": response.content[0].text.strip()})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/api/debug/env", methods=["GET"])
+def debug_env():
+    key = api_key
+    return jsonify({
+        "key_set": bool(key),
+        "key_prefix": key[:12] + "..." if key else "NOT SET"
+    })
 
 
 if __name__ == "__main__":
