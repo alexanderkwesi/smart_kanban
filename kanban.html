@@ -784,14 +784,21 @@ async function sendChat() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ message: msg })
     });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      document.getElementById('chat-thinking').textContent = `Error ${r.status}: ${err.error || r.statusText}`;
+      return;
+    }
     const data = await r.json();
     document.getElementById('chat-thinking').innerHTML = escHtml(data.reply || data.error || 'No response');
   } catch(e) {
-    document.getElementById('chat-thinking').textContent = 'Backend offline — start kanban_backend.py to enable AI chat.';
+    const isOffline = e instanceof TypeError && e.message.includes('fetch');
+    document.getElementById('chat-thinking').textContent = isOffline
+      ? 'Cannot reach backend — check your deployment or run kanban_backend.py locally.'
+      : `Error: ${e.message}`;
   }
   msgs.scrollTop = msgs.scrollHeight;
 }
-
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 function escHtml(s) {
