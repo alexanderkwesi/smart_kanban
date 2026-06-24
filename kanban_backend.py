@@ -11,10 +11,21 @@ import anthropic
 from datetime import datetime, timedelta
 import random
 
-app = Flask(__name__)
-CORS(app, origins=["*", "http://127.0.0.1:7000"])
+# Load .env locally if python-dotenv is available
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
-client = anthropic.Anthropic(api_key="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")
+app = Flask(__name__)
+CORS(app)
+
+api_key = "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"
+if not api_key:
+    raise RuntimeError("ANTHROPIC_API_KEY environment variable is not set.")
+
+client = anthropic.Anthropic(api_key=api_key)
 
 # ─── In-memory store (replace with DB in production) ─────────────────────────
 _store = {
@@ -282,5 +293,5 @@ Give a concise, helpful response (2-4 sentences max). Focus on actionable advice
 
 
 if __name__ == "__main__":
-    print("AI Kanban Backend running on http://127.0.0.1:5000")
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    print("🚀 AI Kanban Backend running on http://localhost:5050")
+    app.run(debug=True, port=5050)
