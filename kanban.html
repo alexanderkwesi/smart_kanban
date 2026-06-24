@@ -426,7 +426,7 @@
 <div class="toast-container" id="toasts"></div>
 
 <script>
-const API = window.location.hostname === 'localhost' ? 'http://localhost:5050/api' : '/api';
+const API = window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/api' : '/api';
 let boardData = { columns: [], tasks: [] };
 let draggedTaskId = null;
 let aiAnalysis = null;
@@ -781,13 +781,8 @@ async function sendChat() {
 
   try {
     const r = await fetch(`${API}/ai/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include',
+      method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ message: msg })
-
     });
     const data = await r.json();
     document.getElementById('chat-thinking').innerHTML = escHtml(data.reply || data.error || 'No response');
